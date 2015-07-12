@@ -8,6 +8,7 @@
                     (atom_to_list fname)
                     "-"
                     (atom_to_list type))))
-(defun dispatch
-  ((fname `#(type ,type) args)
-   (call (MODULE) (get-impl-name fname type) args)))
+
+(defun dispatch (mod fname type args)
+   (call mod (get-impl-name fname type) args))
+
