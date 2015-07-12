@@ -19,55 +19,59 @@
 ;;;   (defmethod area :rectangle [shape]
 ;;;     (* (:length shape) (:width shape)))
 ;;;
-;;;   (area {:type :rectangle :length 2 :width 4}) ;; -> 8
-;;;
-;;; If we try to get the area of a new shape without first defining
-;;; a new method for it, we get an error:
-;;;
-;;;   (area {: type :circle :radius 1})
-;;;
-;;;   -> IllegalArgumentException No method in multimethod 'area' for
-;;;   dispatch value: :circle ...
-;;;
-;;; So let's add a method:
-;;;
 ;;;   (defmethod area :circle [shape]
 ;;;     (* (. Math PI) (:radius shape) (:radius shape)))
+;;;
+;;;   (area {:type :rectangle :length 2 :width 4}) ;; -> 8
 ;;;
 ;;;   (area {:type :circle :radius 1}) ;; -> 3.14159 ...
 
 ;; In LFE, there are no multi-method related macros. But the los project
 ;; offers these for users who wish to use them:
 
+(include-lib "los/include/multi-methods.lfe")
 
-;; XXX add examples once the feature lands ...
+(defmulti area)
+
+(defmethod area triangle
+  (((map 'base b 'height h))
+   (* b h (/ 1 2))))
+
+(defmethod area rectangle
+  (((map 'length l 'width w))
+   (* l w)))
+
+(defmethod area square
+  (((map 'side s))
+   (* s s)))
+
+(defmethod area circle
+  (((map 'radius r))
+   (* (math:pi) r r)))
+
+(defmulti perim)
+
+(defmethod perim rectangle
+  (((map 'length l 'width w))
+   (* 2 (+ l w))))
+
+(defmethod perim circle
+  (((map 'radius r))
+    (* 2 (math:pi) r)))
 
 
-;; To use these, we do the same as the others:
+;; To use these:
 ;;
-;;   > (polymorph:area '(#(type square) #(side 2)))
-;;   4
-;;   > (polymorph:area '(#(type circle) #(radius 2)))
-;;   12.566370614359172
-;;
-;; As long as the module has been compiled, we can use these functions
-;; in the REPL after a slurp:
-;;
-;;   > (slurp "examples/no-macros/polymorph.lfe")
+;;   > (c "examples/macros/polymorph.lfe")
 ;;   #(module polymorph)
-;;   > (area '(#(type square) #(side 2)))
+;;   > (slurp "examples/macros/polymorph.lfe")
+;;   #(module polymorph)
+;;
+;;   > (area #m(type triangle side 2))
 ;;   4
-;;   > (area '(#(type circle) #(radius 2)))
-;;   12.566370614359172
-;;
-;; If we were to create some macros to emulate the Clojure multi-methods,
-;; we'd need the following:
-;;
-;;  * a defmulti macro which creates a generic function like our area
-;;    function
-;;  * a defmethod macro which creates a concrete implementation
-;;
-;; For an example of that, see ./examples/macros/polymorph.lfe.
+;;   > (area #m(type rectangle side 2))
+;;   > (area #m(type square side 2))
+;;   > (area #m(type circle side 2))
 
 ;;;  Clojure protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
