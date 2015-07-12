@@ -9,3 +9,4 @@ notifications:
     - oubiwann@lfe.io
 otp_release:
   - 17.5
+  - 18.0
