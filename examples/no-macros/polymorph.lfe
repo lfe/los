@@ -95,24 +95,23 @@
 ;;
 ;; However, we still have to update area every time we add a new concrete
 ;; implementation. So how could we make area more generic and easier to
-;; extend?
+;; extend? Let's switch to maps for this one:
 
 (defun area
-  ((`(,type . ,rest))
-   (dispatch 'area type rest)))
+  (((= (map 'type type) args))
+   (dispatch 'area type (maps:remove 'type args))))
 
-(defun dispatch
-  ((fname `#(type ,type) args)
+(defun dispatch (fname type args)
    (call (MODULE) (list_to_atom (++ (atom_to_list fname)
                                     "-"
-                                    (atom_to_list type))) args)))
+                                    (atom_to_list type))) args))
 
 (defun area-triangle
-  ((`(#(base ,b) #(height ,h)))
+  (((map 'base b 'height h))
    (* b h (/ 1 2))))
 
 (defun area-rectangle
-  ((`(#(length ,l) #(width ,w)))
+  (((map 'length l 'width w))
    (* l w)))
 
 ;; This example uses the (MODULE) macro to dynamically call functions. As
@@ -121,9 +120,9 @@
 ;;
 ;;   (c "examples/no-macros/polymorph.lfe")
 ;;   #(module polymorph)
-;;   > (polymorph:area '(#(type triangle) #(base 2) #(height 4)))
+;;   > (polymorph:area #m(type triangle base 2 height 4))
 ;;   4.0
-;;   > (polymorph:area '(#(type rectangle) #(length 2) #(width 4)))
+;;   > (polymorph:area #m(type rectangle length 2 width 4))
 ;;   8
 ;;
 ;; If we want to add a new type ("shape", in this case) all we have to do
@@ -131,18 +130,18 @@
 ;; function nor the dispatch function:
 
 (defun area-square
-  ((`(#(side ,s)))
+  (((map 'side s))
    (* s s)))
 
 (defun area-circle
-  ((`(#(radius ,r)))
+  (((map 'radius r))
    (* (math:pi) r r)))
 
 ;; To use these, we do the same as the others:
 ;;
-;;   > (polymorph:area '(#(type square) #(side 2)))
+;;   > (polymorph:area #m(type square side 2))
 ;;   4
-;;   > (polymorph:area '(#(type circle) #(radius 2)))
+;;   > (polymorph:area #m(type circle radius 2))
 ;;   12.566370614359172
 ;;
 ;; As long as the module has been compiled, we can use these functions
@@ -150,11 +149,25 @@
 ;;
 ;;   > (slurp "examples/no-macros/polymorph.lfe")
 ;;   #(module polymorph)
-;;   > (area '(#(type square) #(side 2)))
+;;   > (area #m(type square side 2))
 ;;   4
-;;   > (area '(#(type circle) #(radius 2)))
+;;   > (area #m(type circle radius 2))
 ;;   12.566370614359172
 ;;
+;; We can easily add new functions:
+
+(defun perim
+  (((= (map 'type type) args))
+   (dispatch 'perim type (maps:remove 'type args))))
+
+(defun perim-rectangle
+  (((map 'length l 'width w))
+   (* 2 (+ l w))))
+
+(defun perim-circle
+  (((map 'radius r))
+    (* 2 (math:pi) r)))
+
 ;; If we were to create some macros to emulate the Clojure multi-methods,
 ;; we'd need the following:
 ;;
