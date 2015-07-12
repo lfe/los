@@ -3,7 +3,6 @@ $(error Can't find Erlang executable 'erl')
 exit 1
 endif
 
-LUTIL_VERSION = 0.6.0
 LIB = $(PROJECT)
 DEPS = ./deps
 BIN_DIR = ./bin
@@ -17,32 +16,25 @@ LFETOOL=$(BIN_DIR)/lfetool
 else
 LFETOOL=lfetool
 endif
-ERL_LIBS = .:..:$(shell pwd):$(shell $(LFETOOL) info erllibs)
+ERL_LIBS=.:..:$(shell pwd):$(shell $(LFETOOL) info erllibs)
 OS := $(shell uname -s)
 ifeq ($(OS),Linux)
-		HOST=$(HOSTNAME)
+	HOST=$(HOSTNAME)
 endif
 ifeq ($(OS),Darwin)
-		HOST = $(shell scutil --get ComputerName)
+	HOST = $(shell scutil --get ComputerName)
 endif
-
-compile: get-deps clean-ebin copy-appsrc
-	@echo "Compiling project code and dependencies ..."
-	@which rebar.cmd >/dev/null 2>&1 && \
-	PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) rebar.cmd compile || \
-	PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) rebar compile
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
+$(BIN_DIR)/lfetool: $(BIN_DIR)
+	@make get-lfetool
+
 get-lfetool: $(BIN_DIR)
-	curl -L -o ./lfetool https://raw.githubusercontent.com/lfe/lfetool/dev-v1/lfetool && \
+	curl -L -o ./lfetool https://raw.github.com/lfe/lfetool/dev-v1/lfetool && \
 	chmod 755 ./lfetool && \
 	mv ./lfetool $(BIN_DIR)
-
-copy-appsrc:
-	@mkdir -p $(OUT_DIR)
-	@cp src/$(PROJECT).app.src ebin/$(PROJECT).app
 
 get-version:
 	@PATH=$(SCRIPT_PATH) $(LFETOOL) info version
@@ -50,17 +42,6 @@ get-version:
 	@ERL_LIBS=$(ERL_LIBS) PATH=$(SCRIPT_PATH) erl \
 	-eval "lfe_io:format(\"~p~n\",['$(PROJECT)-util':'get-versions'()])." \
 	-noshell -s erlang halt
-
-get-erllibs:
-	@echo "ERL_LIBS from lfetool:"
-	@ERL_LIBS=$(ERL_LIBS) $(LFETOOL) info erllibs
-
-get-codepath:
-	@echo "Code path:"
-	@ERL_LIBS=$(ERL_LIBS) \
-	erl -eval "io:format(\"~p~n\", [code:get_path()])." -noshell -s erlang halt
-
-debug: get-erllibs get-codepath
 
 get-deps:
 	@echo "Getting dependencies ..."
@@ -73,28 +54,11 @@ clean-ebin:
 clean-eunit:
 	-@PATH=$(SCRIPT_PATH) $(LFETOOL) tests clean
 
-compile-tests: clean-eunit
-	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) $(LFETOOL) tests build
-
-repl: compile
-	@which clear >/dev/null 2>&1 && clear || printf "\033c"
-	@echo "Starting an LFE REPL ..."
-	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) $(LFETOOL) repl
-
-repl-no-deps: compile-no-deps
-	@which clear >/dev/null 2>&1 && clear || printf "\033c"
-	@echo "Starting an LFE REPL ..."
-	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) $(LFETOOL) repl
-
-shell: compile
-	@which clear >/dev/null 2>&1 && clear || printf "\033c"
-	@echo "Starting an Erlang shell ..."
-	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) erl
-
-shell-no-deps: compile-no-deps
-	@which clear >/dev/null 2>&1 && clear || printf "\033c"
-	@echo "Starting an Erlang shell ..."
-	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) erl
+compile: get-deps clean-ebin
+	@echo "Compiling project code and dependencies ..."
+	@which rebar.cmd >/dev/null 2>&1 && \
+	PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) rebar.cmd compile || \
+	PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) rebar compile
 
 compile-no-deps: clean-ebin
 	@echo "Compiling only project code ..."
@@ -103,40 +67,62 @@ compile-no-deps: clean-ebin
 	rebar.cmd compile skip_deps=true || \
 	PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) rebar compile skip_deps=true
 
+compile-tests: clean-eunit
+	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) $(LFETOOL) tests build
+
+repl: compile
+	@which clear >/dev/null 2>&1 && clear || printf "\033c"
+	@echo "Starting an LFE REPL ..."
+	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) $(LFETOOL) repl lfe +pc unicode
+
+repl-no-deps: compile-no-deps
+	@which clear >/dev/null 2>&1 && clear || printf "\033c"
+	@echo "Starting an LFE REPL ..."
+	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) $(LFETOOL) repl lfe +pc unicode
+
+shell: compile
+	@which clear >/dev/null 2>&1 && clear || printf "\033c"
+	@echo "Starting an Erlang shell ..."
+	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) erl + pc unicode
+
+shell-no-deps: compile-no-deps
+	@which clear >/dev/null 2>&1 && clear || printf "\033c"
+	@echo "Starting an Erlang shell ..."
+	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) erl + pc unicode
+
 clean: clean-ebin clean-eunit
 	@which rebar.cmd >/dev/null 2>&1 && rebar.cmd clean || rebar clean
 
-check-unit-only: clean-eunit
+check-unit-only:
 	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) $(LFETOOL) tests unit
 
-check-integration-only: clean-eunit
+check-integration-only:
 	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) $(LFETOOL) tests integration
 
-check-system-only: clean-eunit
+check-system-only:
 	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) $(LFETOOL) tests system
 
 check-unit-with-deps: get-deps compile compile-tests check-unit-only
-check-unit: compile-no-deps check-unit-only
-check-integration: compile check-integration-only
-check-system: compile check-system-only
-check-all-with-deps: compile check-unit-only check-integration-only \
-	check-system-only
-check-all: get-deps compile-no-deps clean-eunit
+check-unit: clean-eunit compile-no-deps check-unit-only
+check-integration: clean-eunit compile check-integration-only
+check-system: clean-eunit compile check-system-only
+check-all-with-deps: clean-eunit compile check-unit-only \
+	check-integration-only check-system-only clean-eunit
+check-all: get-deps clean-eunit compile-no-deps
 	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) $(LFETOOL) tests all
 
 check: check-unit-with-deps
 
-check-travis: compile compile-tests check-unit-only
+check-travis: $(BIN_DIR)/lfetool check
 
-check-runner-ltest: compile-no-deps compile-tests
-	@clear
-	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) \
-	erl -cwd "`pwd`" -listener ltest-listener -eval \
-	"case 'ltest-runner':all() of ok -> halt(0); _ -> halt(127) end" \
-	-noshell
+push-all:
+	@echo "Pusing code to github ..."
+	git push --all
+	git push upstream --all
+	git push --tags
+	git push upstream --tags
 
-check-runner-eunit: compile-no-deps compile-tests
-	@PATH=$(SCRIPT_PATH) ERL_LIBS=$(ERL_LIBS) \
-	erl -cwd "`pwd`" -listener eunit_progress -eval \
-	"case 'ltest-runner':all() of ok -> halt(0); _ -> halt(127) end" \
-	-noshell
+install: compile
+	@echo "Installing lumberjack ..."
+	@PATH=$(SCRIPT_PATH) lfetool install lfe
+
