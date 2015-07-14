@@ -98,7 +98,7 @@
 ;; extend? Let's switch to maps for this one:
 
 (defun area
-  (((= (map 'type type) args))
+  (((= `#m(type ,type) args))
    (dispatch 'area type (maps:remove 'type args))))
 
 (defun dispatch (fname type args)
@@ -107,11 +107,11 @@
                                     (atom_to_list type))) args))
 
 (defun area-triangle
-  (((map 'base b 'height h))
+  ((`#m(base ,b height ,h))
    (* b h (/ 1 2))))
 
 (defun area-rectangle
-  (((map 'length l 'width w))
+  ((`#m(length ,l width ,w))
    (* l w)))
 
 ;; This example uses the (MODULE) macro to dynamically call functions. As
@@ -130,11 +130,11 @@
 ;; function nor the dispatch function:
 
 (defun area-square
-  (((map 'side s))
+  ((`#m(side ,s))
    (* s s)))
 
 (defun area-circle
-  (((map 'radius r))
+  ((`#m(radius ,r))
    (* (math:pi) r r)))
 
 ;; To use these, we do the same as the others:
@@ -157,15 +157,15 @@
 ;; We can easily add new functions:
 
 (defun perim
-  (((= (map 'type type) args))
+  (((= `#m(type ,type) args))
    (dispatch 'perim type (maps:remove 'type args))))
 
 (defun perim-rectangle
-  (((map 'length l 'width w))
+  ((`#m(length ,l width ,w))
    (* 2 (+ l w))))
 
 (defun perim-circle
-  (((map 'radius r))
+  ((`#m(radius ,r))
     (* 2 (math:pi) r)))
 
 ;; If we were to create some macros to emulate the Clojure multi-methods,
