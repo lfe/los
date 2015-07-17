@@ -32,33 +32,44 @@
 (include-lib "los/include/multi-methods.lfe")
 
 (defmulti area)
-
-(defmethod area triangle
-  (((map 'base b 'height h))
-   (* b h (/ 1 2))))
-
-(defmethod area rectangle
-  (((map 'length l 'width w))
-   (* l w)))
-
-(defmethod area square
-  (((map 'side s))
-   (* s s)))
-
-(defmethod area circle
-  (((map 'radius r))
-   (* (math:pi) r r)))
-
 (defmulti perim)
 
-(defmethod perim rectangle
-  (((map 'length l 'width w))
+(defmethod area 'triangle
+  ((`#m(base ,b height ,h))
+   (* b h (/ 1 2))))
+
+(defmethod perim 'triangle
+  ((`#m(base ,b height ,h))
+   (+ b h (math:sqrt (+ (* b b)
+                        (* h h))))))
+
+(defmethod area 'rectangle
+  ((`#m(length ,l width ,w))
+   (* l w)))
+
+(defmethod perim 'rectangle
+  ((`#m(length ,l width ,w))
    (* 2 (+ l w))))
 
-(defmethod perim circle
-  (((map 'radius r))
-    (* 2 (math:pi) r)))
+(defmethod area 'square
+  ((`#m(side ,s))
+   (* s s)))
 
+(defmethod perim 'square
+  ((`#m(side ,s))
+   (* 4 s)))
+
+(defmethod area 'circle
+  ((`#m(diameter ,d))
+    (area `#m(type circle radius ,(/ d 2))))
+  ((`#m(radius ,r))
+   (* (math:pi) r r)))
+
+(defmethod perim 'circle
+  ((`#m(diameter ,d))
+    (perim `#m(type circle radius ,(/ d 2))))
+  ((`#m(radius ,r))
+    (* 2 (math:pi) r)))
 
 ;; To use these:
 ;;
@@ -67,11 +78,25 @@
 ;;   > (slurp "examples/macros/polymorph.lfe")
 ;;   #(module polymorph)
 ;;
-;;   > (area #m(type triangle side 2))
-;;   4
-;;   > (area #m(type rectangle side 2))
-;;   > (area #m(type square side 2))
-;;   > (area #m(type circle side 2))
+;;   > (area #m(type triangle base 6 height 10))
+;;   30.0
+;;   > (perim #m(type triangle base 6 height 10))
+;;   27.6619037896906
+;;
+;;   > (area #m(type rectangle width 6 length 10))
+;;   60
+;;   > (perim #m(type rectangle width 6 length 10))
+;;   32
+;;
+;;   > (area #m(type square side 8))
+;;   64
+;;   > (perim #m(type square side 8))
+;;   32
+;;
+;;   > (area #m(type circle diameter 8))
+;;   50.26548245743669
+;;   > (perim #m(type circle diameter 8))
+;;   25.132741228718345
 
 ;;;  Clojure protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
