@@ -1,12 +1,12 @@
-(defmacro defmulti
-  ((cons name '())
+(defmacro defmulti (name)
    `(defun ,name
-      (((= (map 'type type) args))
-       (los-multi:dispatch (MODULE) ',name type (maps:remove 'type args))))))
+      (((= `#m(type ,type) args))
+       (los-multi:dispatch (MODULE) ',name type (maps:remove 'type args)))))
 
 (defmacro defmethod
-  ((list name type body)
-   `(defun ,(los-multi:get-impl-name name type) ,body)))
+  ((cons name (cons type body))
+   `(defun ,(los-multi:get-impl-name name (cadr type))
+     ,@body)))
 
 (defun loaded-multi-methods ()
   "This is just a dummy function for display purposes when including from the
